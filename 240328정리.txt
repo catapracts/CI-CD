@@ -1,0 +1,393 @@
+09:36
+
+gitHub Server를 Local VM에 생성
+
+
+  sudo apt-get update
+  sudo apt-get install -y curl openssh-server ca-certificates tzdata perl
+  curl https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh | sudo bash
+  sudo apt-get install gitlab-ce //설치
+
+  sudo nano etc/gitlab/gitlab.rb
+       => EXTERNAL_URL="http://192.168.15.20"
+  gitlab-ctl reconfigure //설정
+
+  sudo cat /etc/gitlab/initial_root_password
+
+
+gitlab repo 만들기
+로그인 - projects - create project - create blank project
+
+Project name : Proj. 이름
+Project slug : 실제 Repo. 주소
+
+code 누르고 HTTP 주소 복사
+
+git이랑 똑같이 진행하면 된다. - 단 처음 push할 때, gitlab id랑 pw쳐야하는 거 있다.
+
+Continuous Deployment : 배포 자동화 - Jenkins, Docker, Kubernetes
+Continuous Integration : 통합 자동화  - GitLab(or GitHub, Bucket, ...), Spring 등
+
+
+Jenkins - 권장 RAM 8GB, HDD : 50GB+, CPU : 4 필요 / jdk기반 작동 / System Resource를 많이 잡아먹는다
+SuperPutty - 위치 조정 가능
+LTS(Long Term Support Release)
+
+Jenkins 설치
+1. java설치
+sudo apt update
+sudo apt install fontconfig openjdk-17-jre
+java -version
+
+
+2. LTS(Long Term Support Release) - Jenkins 설치
+sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian/jenkins.io-2023.key
+
+-> 설치 전 인증키 다운받기
+/usr/share/keyrings/jenkins-keyring.asc : 인증키 받아온것
+
+
+echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+  https://pkg.jenkins.io/debian binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+-> 아무메세지 안 뜨면 성공
+
+sudo apt-get update
+
+sudo apt-get install jenkins
+
+
+sudo systemctl status jenkins -> jenkins가 active(running)인지 확인
+
+VM(windev)에서 접속확인 - 8080이 기본 port
+http://192.168.15.30:8080
+
+Jenkins 2.451
+
+/var/lib/jenkins/secrets/initialAdminPassword -> 초기 pw 위치한 파일
+초기pw : 34b87365c2864fdca2dcbf0cb323ea54
+복붙하고 들어가기
+Install suggested plugins -> 이건 알아서 잘 깔아라
+Select plugins to install -> 이건 고급자용 커스터마이징하는 것
+Create First Admin User -> 이거 스킵하고 넘어감 관리자 계정으로 들어갈거라서
+Instance Configuration : http://192.168.15.30:8080/
+
+admin - 설정 - Password변경
+
+
+Docker 설치
+1. Docker설치를 위한 인증키 setting
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+ls -la /etc/apt/keyrings/ -> key 생성됐는지 확인
+
+2.
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+
+sudo apt-get update
+
+
+//Docker 설치
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+
+//Docker 잘 설치됐는지 확인
+sudo docker run hello-world
+docker
+sudo systemctl status docker
+docker ps
+docker images
+
+sudo groupadd docker
+sudo usermod -aG docker $USER
+
+# Log out and log back
+newgrp docker
+docker run hello-world
+
+// Security Issues 
+sudo chmod 666 /var/run/docker.sock or 
+sudo chown root:docker /var/run/docker.sock
+sudo usermod -a -G docker jenkins
+
+
+sudo cat /etc/group
+
+//docker hub에서 nginx 최신 버전으로 다운 받고, Docker container에서 실행
+docker run -d -p 80:80 nginx
+download
+local port
+container port
+
+//Container 정보 확인
+docker ps
+
+//Image 정보 확인
+docker images
+
+192.168.15.30:80으로 접속
+https://hub.docker.com -> docker image파일들 올라가 있는 곳
+
+
+
+Docker, Kubernatis(K8S) CI/CD, Jenkins, GitLAB
+
+WinDEV(VM) -> GitLab(VM) - Jenkins(VM - Docker같이 올린다) - Docker Hub - Kubernetes
+
+Kubernetes : Control Node, Worker Node
+
+CD : Continuous Deploy : 관리자 승인 O 배포
+CD : Continuous Delivery : 관리자 승인 X 배포
+
+DevOps : Development(개발) + Operater(운영 - 서버 관리 및 배포)
+
+Docker = Public Repo. : 전세계 모든 user가 접근 가능, Docker image 저장된 Repo.
+
+AWS Ubuntu(22.4 LTS) VM : Linux = Docker Host : Docker가 설치된 System, Public IP, 전 세계 모든 사용자에게 Service제공
+
+Local System : Window, Mac, Linux, etc... = Docker Desktop(개발, 테스트)
+
+Docker명령어
+- docker ps (-a) : docker container의 상태 확인 = 실행 상태의 container 출력 / -a : 전부 출력
+- docker images : 
+- docker start (container ID or name) : container 실행 
+- docker stop (container ID or name) : container 종료
+*container : docker image가 RAM에 Service되고 있는 상태
+
+
+
+https://aws.amazon.com/ko/compare/the-difference-between-docker-images-and-containers/
+도커는 소프트웨어를 컨테이너에 패키징하는 소프트웨어 플랫폼
+도커 이미지와 컨테이너는 애플리케이션 배포 기술
+도커 이미지는 컨테이너 생성 지침이 포함된 읽기 전용 템플릿, 컨테이너 내에서 애플리케이션을 실행하는 데 필요한 라이브러리 및 종속성의 스냅샷 또는 청사진
+
+
+https://tech.cloudmt.co.kr/2022/06/29/%EB%8F%84%EC%BB%A4%EC%99%80-%EC%BB%A8%ED%85%8C%EC%9D%B4%EB%84%88%EC%9D%98-%EC%9D%B4%ED%95%B4-1-3-%EC%BB%A8%ED%85%8C%EC%9D%B4%EB%84%88-%EC%82%AC%EC%9A%A9%EB%B2%95/
+도커 이미지는 컨테이너를 만드는 데 사용되는 읽기 전용(Read-only) 템플릿 - 컨테이너 실행에 필요한 파일과 설정값 등을 포함하고 있는 도커파일을 만든 후 Dockerfile을 빌드 하여 이미지를 만듭니다.
+도커 컨테이너(Docker Container)는 도커 이미지를 실행한 상태 - 이미지로 컨테이너를 생성하면 이미지의 목적에 맞는 파일이 들어있는 파일 시스템과 격리된 시스템 자원 및 네트워크를 사용할 수 있는 독립된 공간이 생성 /  읽기 전용인 이미지에 변경된 사항을 저장하는 컨테이너 계층(Layer)에 저장
+*하나의 도넛 레시피에서 여러 가지 맛의 도넛을 만들 수 있는 것과 같이, 하나의 도커 이미지로 여러 개의 도커 컨테이너를 만들 수 있습니다.
+**기존의 도넛 레시피를 수정하게 되어도, 이미 기존 레시피로 만들어진 도넛에는 영향이 없듯이, 이처럼 도커 이미지를 변경해도 이미 실행 중인 도커 컨테이너에는 영향을 주지 않습니다.
+
+
+============================================================================================================
+10:35
+
+Docker = Docker Client + Docker Host + Docker Registry
+
+Docker Client : Docker command를 이용
+Docker Host : Docker Client에서 입력한 command를 처리 후 Container로 작동 / Linux(일반적으로 사용), Window, MAC, etc.. / Docker Daemon
+Docker Registry : Docker image가 저장된 공간 / ≒Repo. / Docker Hub에 image들 존재 / private
+Docker Daemon(=Service) : Docker Service / Docker Hub에서 image를 가지고 와서 Service를 실행 = Container 생성
+
+docker images : Docker Hub에서 다운 받아온 이미지 확인
+
+*명령어 --help로 명령어 관련 설명들을 볼 수 있다.
+
+docker pull (image이름:버전) : DockerHub에서 Docker image 가져오기
+docker build : 가져온 Docker image를 Docker Container로 만들고 실행
+docker run = docker pull + docker build = docker image 가져와서 Container에 올려서 실행
+
+docker run -d --name nginx2 -p 8181:80 nginx:latest : Docker image 가져와서 실행
+-d = Background에서 실행
+--name<Container name> = Container의 이름 부여
+-p Host(Local)PortNo.:Container PortNo. : 시용 할 port연결
+nginx:latest : DockerHub에 있는 image version정보
+
+Docker Image 삭제 : docker rmi (Image ID) (Image ID) (Image ID) ...
+Docker Container 삭제 : docker rm (container ID or names) (container ID or names) (container ID or names) ...
+*STATUS가 UP이면 삭제 안 된다. -> -f 사용하면 강제 삭제 가능
+
+
+============================================================================================================
+11:42
+
+DockerHub접속
+메달 아이콘 있으면 Docker official image파일이라는 의미다
+일반인들도 올릴 수 있다
+
+
+AWS EC2에 Docker 올리기
+AWS로그인 - EC2 - 인스턴스 - Launch an instance 
+- 이름 : Docker host1, Ubuntu, t2micro유형,  
+키페어 생성(docker_host1이라는 이름으로 생성 -> 다운로드 됨), 
+네트워크 설정 : public IP자동 할당 활성화 시키기, 방화벽 보안그룹 생성, ssh 22, 스토리지 20GB
+인스턴스 시작
+
+
+인스턴스에 연결 - 사용자이름: ubuntu 
+인스턴스 요약 - ip확인하고 putty 접속
+
+
+Docker Desktop설치
+개발된 내용들을 Docker command를 이용해서 upload
+https://www.docker.com/products/docker-desktop/
+설치 후 재부팅 필요
+
+
+
+============================================================================================================
+12:35
+
+Server의 80,90%가 Linux
+
+WSL(Window SubSystem Linux)
+
+Hyper-V -> Linux -> Docker DeskTop(Linux에서 작동)
+
+//nginx Download
+docker run -d --name nginx_my -p 10001:80 nginx:latest
+
+
+//Oracle XE 21C Download
+Docker Hub가서 Oracle 찾아서 다운로드
+gvenzl/oracle-xe
+
+netstat -na | more : HostOS의 port가 사용중이지 않은 port 사용
+*1521 - Oracle / 3306 - MySQL
+**5000~65535의 임의의 port 사용
+port 충돌 안나게 먼저 확인 후 시작
+
+
+sample 명령어 : docker run -d -p 1521:1521 -e ORACLE_PASSWORD=<your password> gvenzl/oracle-xe
+
+docker run -d -p 10521:1521 -e ORACLE_PASSWORD=1234 gvenzl/oracle-xe:latest
+1521 : export port(fixed)
+10521 : import port(접속할 port) - 10521로 들어오면 1521로 연결된다(forwarding)
+-e : 환경 변수 설정
+system(Oracle에서 root)계정의 pw를 1234로 설정
+
+Oracle Developer : GUI환경으로 Oracle Server(TCP : 1521)를 관리
+
+*Trusted Content - 인증된 기업들 등이 올린 애들 - SW이름 : 이런 형식으로 되어 있다.
+그 외는 개인이 올린 것 - 개인계정명/SW이름 : 이런 형식으로 되어 있다.
+
+환경 - Window(pro) : Hyper-V, WSL2 
+
+이런 식으로 docker 통해서 image만 다운받으면 어떤 프로그램이든 직접 설치할 필요 없이 사용 가능
+
+============================================================================================================
+14:36
+
+
+
+VM(무거움)
+Hyper-V
+
+
+Docker(가볍다)
+Hyper-V
+
+
+MySQL v8.3 -> 이거 버전 안 맞으면 접속 안 될수도 있다.
+sample 명령어 : docker run --name some-mysql -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mysql:tag
+docker run --name some-mysql_8_3 -e MYSQL_ROOT_PASSWORD=1234 -d -p 30306:3306 mysql
+docker run --name some-mysql_8_3 -e MYSQL_ROOT_PASSWORD=1234 -d -p 30307:3306 mysql
+docker run --name some-mysql_8_3 -e MYSQL_ROOT_PASSWORD=1234 -d -p 30308:3306 mysql
+이런 식으로 여러 개를 생성해서 client별로 Docker에 올린 MySQL Server에 연결해서 사용 가능
+
+
+Docker Registry
+
+
+
+============================================================================================================
+15:43
+
+// Docker HUB의 자신의 레파지토리에 도커 이미지 Upload , 
+   hub.docker.com     repository 에 자신의 도커이미지를 upload 
+   
+   // 1. 로컬의 다운로드 받은 이미지 확인 
+   docker images -a
+
+   // 2. 도커 이미지 이름을 변경 : Tag 를 변경 ,    ID/이미지명:lastest 
+   docker tag nginx:latest kite01/nginx_my:8.3
+
+   // 3. 도커 허브 계정으로 로그인 
+   docker login 
+
+   // 4. 로컬의 레파지토리의 이미지를 docker Hub로 전송 
+   docker push kite01/nginx_my:8.3
+
+   // 5. hub.docker.com 접속후 repository 에 잘 전송이 되었는지 확인 
+   // 6. 사용 설명 문서 작성 
+    docker run -d --name nginx-my -p 80:80 kite01/nginx_my:8.3   
+
+
+// Dockerfile    : 도커 파일의 설정에 따라서 도커 이미지를 생성함.  : 
+	sbb 프로잭트를 도커 이미지를 생성==> Docker Hub에 전송
+
+   //1.  sbb 프로잭트 Root 폴더에 Dockerfile
+   //2.  Dockerfile
+=========================================
+FROM openjdk:17
+ENV APP_HOME=/user/app/
+WORKDIR ${APP_HOME}
+COPY build/libs/*.jar sbb.jar
+EXPOSE 9696
+CMD ["java", "-jar", "sbb.jar"]
+========================================== 
+   //3. sbb 폴더의 build/libs/  의 모든 파일을 제거함. 
+
+
+============================================================================================================
+16:37
+
+docker push
+docker tag 
+tag -> 원본 image의 이름 새롭게 변경
+계정명 안 맞추면 큰일 난다
+Local에 있는 image를 tag로 이름 바꾼다음 Registry(Repo.)에 올림 -> 언제든지 가져다 쓸 수 있음
+
+docker file
+FROM openjdk:17
+ENV APP_HOME=/user/app/
+WORKDIR ${APP_HOME}
+COPY build/libs/*.jar sbb.jar
+EXPOSE 9696
+CMD ["java", "-jar", "sbb.jar"]
+
+cmd -> Spring 있는 곳으로 이동
+
+
+============================================================================================================
+17:38
+
+//4. build - 개발 src를 배포 파일로 생성 : ~.jar(class파일의 묶음), *.java === compile === *.class
+~.war -> ~.jar(Tomcat내장된 상태, version 안 맞으면 작동 안 함)
+
+Spring
+RunConfigurations -> GradleTask선택 우클릭 -> New bootJar라는 이름으로 add하고 workspace위치 등록하고 apply 후 run 해서 배포파일 생성 -> build파일 생성 
+-> 프로젝트 파일 있는 폴더로 이동 -> build\libs\안에 배포 파일 하나 생성됨 프로젝트이름-0.0.1-SNAPSHOT.jar
+
+//5. Dockerfile에서 Docker image 생성
+cmd에서 Dockerfile있는 곳으로 이동(프로젝트 파일 최상위 폴더 있는 곳)
+docker build -t deploy
+
+//6. DockerHub
+docker images로 생성 잘 됐는지 확인
+docker tag deploy:latest 계정이름/deploy:latest
+
+docker login -u 계정명
+docker push 계정명/deploy
+
+docker ps
+
+docker run -d --name myproj -p 9696:9696 계정명/deploy
+
+
+
+
+Docker Hub
+My Account - Security - New Access Token - 새로 비밀번호 생성해야 한다.
