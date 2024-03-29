@@ -1,0 +1,346 @@
+Docker Hub(Docker Server) : Local(Client) = 1 : N
+C -> S : docker push
+S -> C : docker run
+
+Docker Host = Docker가 설치된 System
+VM에서 윈도우 안에 도커 데스크탑 깔라면 설정 들어가서 CPU 가상화 설정해줘야함
+https://ssoi.tistory.com/2
+
+
+여전히 오류 발생
+https://www.youtube.com/watch?v=Vj35f6L9TCA
+
+VM에서는 BIOS들어갈 수가 없는건가?
+https://velog.io/@minchocopie/Docker-Docker-Desktop-stopped
+https://kadosholy.tistory.com/61
+
+
+
+
+============================================================================================================
+09:36
+
+현재 가상화 -> 도커 + kubernetes
+
+
+Container(매우 작지만 OS 존재함)					Kubernetes
+Docker        ->  				Docker Docker Docker Docker Docker Docker Docker Docker Docker(Kubernete Node = 실제 물리적 Server) ...
+OS
+H/W
+
+VM -> Container -> Kubernetes
+
+Kubernetes - Docker host들 Orchestration해서 자동화 / 「user들 많아지면 다른 node로 이동시킴 - user들 적어지면 하나의 node에 몰아넣고 다른 node 다 닫음」 반복 = Orchestration
+
+
+docker rm -f Container ID Container ID Container ID ...
+
+docker rmi -f image ID image ID image ID image ID ....
+
+
+image 1개에 container 여러 개 생성
+docker run -d --name my_nginx -p dnjsgksms 포트 번호1:80 dockerhub계정명/Repo이름:tag
+docker run -d --name my_nginx -p dnjsgksms 포트 번호2:80 dockerhub계정명/Repo이름:tag
+docker run -d --name my_nginx -p dnjsgksms 포트 번호3:80 dockerhub계정명/Repo이름:tag 
+
+
+
+============================================================================================================
+10:38
+
+VM(window) 가상화 사용
+설정 - 시스템 - 프로세서 - 네스티드~ 체크 -> 활성화 안 되면 https://ssoi.tistory.com/2 참조
+
+   //2.  Dockerfile
+=========================================
+FROM openjdk:17
+ENV APP_HOME=/user/app/
+WORKDIR ${APP_HOME}
+COPY build/libs/*.jar sbb.jar -> 배포파일 생성
+EXPOSE 9696 -> 배포파일 나갈 포트
+CMD ["java", "-jar", "sbb.jar"]
+========================================== 
+
+build에 compile된 파일이 있어야 한다.
+
+Docker Hub 들어가서 openJDK 다운로드
+
+docker build로 수동 update
+
+
+docker images -a
+
+============================================================================================================
+11:40
+
+Docker file있는 프로젝트 폴더로 이동 후 실행
+
+//Docker image파일로 만들기
+docker build -t 프로젝트 이름
+
+DockerHub에 Login
+docker login  
+
+DockerHub에 잘 올라갔는지 확인
+docker push 계정명/프로젝트 이름
+
+container로 실행
+docker run -d --name 프로젝트 이름 -p 포트번호:포트번호 계정명/프로젝트 이름
+
+
+Docker Compose -> 실무에서 사용
+- 여러 개의 Docker Image를 script화하여 한꺼번에 Container로 작동시킨다.
+- docker compose.yaml : image 여러 개 한꺼번에 Container로 작동 / docker run : image 1개 작동
+
+
+   cd "C:\docker_compose_test\test1" 폴더에 docker-compose.yaml 
+   ==============================================
+version: "3.7" -> Docker compose version 
+
+services: 
+  db: -> section1 = container / DB
+    image: mysql:5.7
+    volumes:
+      - ./db_data:/var/lib/mysql -> db_data = host에 있는 폴더 / /var/lib/mysql = ?에 있는 폴더
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress_user
+      MYSQL_PASSWORD: 1234
+ (공백 넣어서 구분)
+  app: -> section2 = container / app(WEB Server)은 항상 db container 다음에 와야 한다. why? DB 참조해서 작동할테니까
+    depends_on:
+      - db
+    image: wordpress:latest
+    volumes: -> docker run -v : volume mount = Host위에 Container올릴 때, RAM(휘발성)위에 올라감 = container제거하면 다 날아감 -> container의 data를 Host에 저장하도록 설정
+      - ./app_data:/var/www/html
+    ports:
+      - "8080:80"
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: db:3306 -> DB를 3306 portNo.이용해서 접근
+      WORDPRESS_DB_NAME: wordpress -> DB이름
+      WORDPRESS_DB_USER: wordpress_user -> DB접속할 id
+      WORDPRESS_DB_PASSWORD: 1234 -> DB접속할 pw
+
+
+=> 다 load되면 실행
+
+   ===============================================  
+
+  // 도커 컴포즈 실행 : docker-compose.yaml 
+  docker-compose up -d 
+
+
+cd\C:\docker_compoes_test\test1
+
+Docker compose실행
+docker-compose up -d
+
+
+============================================================================================================
+12:50
+
+
+docker-compose up -d -> 여러 개의 image를 한꺼번에 올려준다.
+
+http://localhost:8080/wp-admin -> wordpress 관리자 페이지
+WordPress
+
+============================================================================================================
+14:35
+
+Docker File : Docker image만들 때 사용 / docker build 명령어 이용
+Docker Compose : container N개 한꺼번에 작동 / ~.yaml, ~.yml 
+현재 상태 - DB(MySQL) & WEB(Wordpress) 1개씩 올라가 있는 상태
+
+touch docker-compose.yaml
+version: "3.7"
+
+services:
+  db:
+    image: mysql:5.7
+    volumes:
+      - ./db_data:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress_user
+      MYSQL_PASSWORD: 1234
+ 
+  app:
+    depends_on:
+      - db
+    image: wordpress:latest
+    volumes:
+      - ./app_data:/var/www/html
+    ports:
+      - "8080:80"
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress_user
+      WORDPRESS_DB_PASSWORD: 1234
+
+
+jenkins = Docker Host
+
+docker compose하다가 오류나면 생성된 container 다 지우고 새롭게 시작 / image들은 지울 필요 없다.
+sudo rm_rf db_data/
+
+docker ps -a : up = 작동中,
+
+
+============================================================================================================
+15:38
+
+
+Jenkins에 올리기 전
+CI단 - Docker File(Docker image만들기)이랑 Docker Compose(Docker Container 만들기)생성 후 올린다.
+
+Jenkins
+기본적으로 GitHub와 연동되어 있다.(Installed Plugins에서 확인 가능)
+~.jar파일 Jenkins가 만들어 준다 - maven, gradle, ant 등에 따라서 만들어준다. = plugin필요
+docker image만들어준다 = plugin필요
+Jenkins관리 -> System, Tools, Plugins, Credentials 이 4가지를 주로 사용
+
+
+Jenkins와 GitLab연동하기
+1. Plugins(Dashboard - Jenkins관리 - Plugins)
+- Available plugins 가서 설치
+- Jenkins에서 사용할 plugin 설치 : GitLab(GitLab), Docker(Docker, Docker Pipeline), Build Tool(Maven Integration, Gradle Repo, Gradle Daemon saver, SSH Pipeline Steps)설치
+- 설치가 끝나고 실행중인 작업이 없으면, Jenkins 재시작 check해서 재시작하기
+
+
+2. Jenkins VM에 추가 프로그램 설치
+sudo apt-get install -y git, maven
+sudo apt-get install -y gradle
+
+
+3. GitLab에서 Access Token만들기
+- Jenkins랑 GitLab이 서로 access가능하도록 만들기 위해 생성
+- Jemkins관리 - System - GitLab찾기
+
+
+
+
+
+============================================================================================================
+16:37
+
+Jenkins(Dashboard - Jenkins관리 - System - GitLab)
+
+1. GitLab과 연동
+Connection name : MyGitLab
+GitLab host URL : http://192.168.15.20
+Credentials = GitLab에 있는 Credentials : Add눌러서 만든거 선택
+Add - Jenkins - Domain : Global credentials / Kind : GitLab API token / Scope : Global / API token : 복붙 / ID : GitLab_API_Token - Add
+Test Connection
+저장
+
+
+2. 확인
+Dashboard - Jenkins관리 - System - GitLab :  가서 등록되어있는지 확인
+Dashboard - Jenkins관리 - Credentials : 가서 등록되어있는지 확인
+
+
+3. 새로운 item 만들기
+MyAppJob / Freestyle project - ok
+GitLab Connection : MyGitLab인거 확인
+소스 코드 관리 : Git / Repository URL : 아까 GitLab에서 만든 Repo. 주소 복사 / 
+Credentials(root계정 암호) : 생성한 credentials 생성
+Add - Jenkins
+Domain : Global credentials
+Kind : Username with password
+Username : root
+Password : Pa$$w0rd
+ID(credentials 이름) : root_gitlab_user
+Discription : GitLab의 해당 Repository의 user = root
+Add
+ => 해당 Repo.에서 수정사항 발생시 등록된 Repo에 등록된 계정으로 pw치고 들어간다.
+Branch Specifier : */main
+저장
+
+
+4. item 만든거 확인하기
+Dashboard
+W - 날씨 모양 : 햇살(오류 없이 잘 됨)
+선택해서 들어간 다음 구성 선택해서  입력한거 잘 들어갔는지 확인
+
+
+GitLab(Admin Area / Settings - Network)
+*project경로 : Administrator/프로젝트이름 - Settings 위 2개 Settings 헷갈리지 않게 조심하기
+
+1. Admin Area -> Settings -> Network -> Outbound requests
+- Allow requests to the local network from webhooks and integrations - check -> WebHook Setting : Data에 변화 발생하면 Jenkins로 보냄
+- Allow requests to the local network from system hooks - check
+- Save Changes
+
+
+2. 계정 아이콘 클릭 - Preferences - Access Tokens
+- Jenkins의 Credentials에 넣은 Token생성
+*Token 한 번 생성되면 다시는 볼 수 없으니 암호는 반드시 적어 놓기*
+- Add new token
+Token name : MyGitLab_Access_Token
+Expiration date(유효 기간 - default : 1달) : 2025-03-29
+Select scopes(Token의 권한 Setting) : 전부 선택(api, read_api, read_user, create_runner, k8s_proxy, read_repository, write_repository, ai_features, sudo, admin_mode, read_service_ping)
+Create personal access token
+Access Token 생성됨 : glpat-3WnAy-xjNWRHVrLdozQs
+
+
+3. GitLab가서 Blank Project 생성 : Jenkins랑 연동해서 사용할 프로젝트
+- My-App1, public, root, Readme파일 없이 생성
+- Settings - Webhooks - Add new webhook
+
+
+============================================================================================================
+17:38
+
+Hook
+
+Dashboard - Jenkins관리 - System, Tools, Plugins, Credentials(ID & PW)
+
+Jenkins관리 - Credentials
+Credentials - 만들어진 애들
+Stores scoped to Jenkins - global선택 - Global credentials (unrestricted)
+
+Add Credentials - Kind, Scope, Username, Password, ID, Description
+
+Jenkins - Script code 엄청 많이 사용 - 그래서 Credential 사용함 - Script내에서 ID/PW 안 쓰고, Credential 이름을 대신 써서 작동시킨다.
+
+지금 Jenkins랑 GitLab사이 연결한 것 by Credentials
+Jenkins역할 - GitLab에서 파일 넘겨주면 Doker에 연동해서 Docker Hub로 보내버림
+
+DOCKER_PASS = Credential
+
+
+Docker Hub
+My Account - Security - Access Tokens - New Access Token - Access Token Description  : Jenkins_30_VM / Access permissions : Read, Write, Delete Generate
+Token 
+
+
+
+
+Jenkins
+Add Credentials
+Kind : Username with password
+Scope : Global
+Username : Docker Hub ID
+Password : Token
+ID : DOCKER_PASS
+Description : 
+create
+
+
+
+CI - 개발하고 그 결과를 GitHub or GitLab에 지속적으로 Upload / 개발된 것들을 원격에서 Download
+CD - Upload된 것들을 가지고 Docker에 전달 -> Docker는 받은 것들을 Docker Hub에 Upload -> Docker Hub는 Upload된 것들을 Kubernetes에게 전달 -> Kubernetes는 전달 받은 것들을 기준으로 트래픽 분산, 배포 등의 작업 수행
+kubernetes가 수행한 작업이 Docker Hub에 저장 -> CI단에서 Download 요청을 하면, Docker를 통해 요청한 파일을 내려보냄 -> Docker는 Jenkins에게 전달 -> Jenkins가 GitHub or GitLab에게 전달
+
+
+
+
+
